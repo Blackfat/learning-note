@@ -14,5 +14,7 @@
 
 - 效果如图
 
-![nginx高亮](/Users/blackfat/Documents/引用图片/nginx高亮.jpg)
+  ![nginx](https://user-images.githubusercontent.com/13096375/49019485-01758680-f1c9-11e8-8699-7aef19e2eb7c.jpg)
+
+
 
