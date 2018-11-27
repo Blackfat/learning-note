@@ -14,7 +14,8 @@
 
 - 效果如图
 
-  ![nginx](https://user-images.githubusercontent.com/13096375/49019485-01758680-f1c9-11e8-8699-7aef19e2eb7c.jpg)
+ ![nginx](https://user-images.githubusercontent.com/13096375/49052433-c013c400-f226-11e8-8554-d35df68e410f.jpg)
+
 
 
 
