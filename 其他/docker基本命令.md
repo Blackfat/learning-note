@@ -75,6 +75,15 @@
 - docker pull rabbitmq:3.6.9-management
 - docker run -d --name rabbitmq --publish 5671:5671  --publish 5672:5672 --publish 4369:4369 --publish 25672:25672 --publish 15671:15671 --publish 15672:15672 rabbitmq:3.6.9-management
 
+#### docker部署kafka
+
+```bash
+docker run --name kafka -p 9092:9092 -e KAFKA_ZOOKEEPER_CONNECT="101.132.177.27:2181" -e KAFKA_ADVERTISED_HOST_NAME="101.132.177.27" -e LANG="en_US.UTF-8" -v /docker/kafka/kfk_log:/kafka -v /var/run/docker.sock:/var/run/docker.sock -tid wurstmeister/kafka
+
+```
+
+
+
 
 
 
