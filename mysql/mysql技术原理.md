@@ -75,6 +75,20 @@ select * from information_schema.innodb_trx where TIME_TO_SEC(timediff(now(),trx
 
 ```
 
+事务隔离
+
+InnoDB 里面每个事务有一个唯一的事务 ID，叫作 transaction id。它是在事务开始的时候向 InnoDB 的事务系统申请的，是按申请顺序严格递增的。 每次事务更新数据的时候，都会生成一个新的数据版本，并且把 transaction id 赋值给这个数据版本的 事务 ID，记为 row trx_id。同时，旧的数据版本要保留，并且在新的数据版本中，能够有信息可以直 接拿到它。
+
+InnoDB 的行数据有多个版本，每个数据版本有自己的 row trx_id，每个事务或者语句有自己的 up_limit_id。
+
+普通查询语句是一致性读，一致性读会根据 row trx_id 和 up_limit_id 的大小决定数据版 本的可见性。 
+
+对于可重复读，查询只承认在事务启动前就已经提交完成的数据； 对于读提交，查询只承认在语句启动前就已经提交完成的数据； 而当前读，总是读取已经提交完成的最新版本。 
+
+> 更新数据都是先读后写的，而这个读，只能读当前的值，称为“当前读（current read）”。 
+
+>  一个事务在启动的时候，找到所有已经提交的事务 ID 的最大值，记为 up_limit_id 。
+
 
 
 ### 索引
