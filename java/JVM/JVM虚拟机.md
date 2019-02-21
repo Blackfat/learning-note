@@ -19,7 +19,14 @@
 - 如果一个操作happens-before另一个操作，那么第一个操作的执行结果将对第二个操作可见，而且第一个操作的执行顺序排在第二个操作之前。
 - 两个操作之间存在happens-before关系，并不意味着Java平台的具体实现必须要按照happens-before关系指定的顺序来执行。如果重排序之后的执行结果，与按happens-before关系来执行的结果一致，那么这种重排序并不非法（也就是说，JMM允许这种重排序）
 
+线程间的happens-before关系
 
+1. 解锁操作 happens-before 之后（这里指时钟顺序先后）对同一把锁的加锁操作。
+2. volatile 字段的写操作 happens-before 之后（这里指时钟顺序先后）对同一字段的读操作。 
+3. 线程的启动操作（即 Thread.starts()） happens-before 该线程的第一个操作。 
+4. 线程的最后一个操作 happens-before 它的终止事件（即其他线程通过 Thread.isAlive() 或 Thread.join() 判断该线程是否中止）。 
+5. 线程对其他线程的中断操作 happens-before 被中断线程所收到的中断事件（即被中断线程的 InterruptedException 异常，或者第三个线程针对被中断线程的 Thread.interrupted 或者 Thread.isInterrupted 调用）。
+6. 构造器中的最后一个操作 happens-before 析构器的第一个操作。 
 
 #### java对象的内存布局
 
