@@ -62,6 +62,8 @@ cas比较交换来鉴别线程是否出现冲突，出现冲突就重试当前�
 
 5.AQS 
 
+AQS：多线程访问共享资源的同步器框架，资源分为独占式资源（只有一个线程能执行）代表实现有ReentrantLock,需要实现tryAcquire-tryRelease接口；共享资源（允许多个线程同时执行）代表实现有Semaphore,CountDownLatch，需要实现tryAcquireShared-tryReleaseShared；CyclicBarrier内部是通过ReentrantLock实现的；ReentranReadWriteLock同时实现了独占式和共享方式。
+
 6.如何检测死锁？怎么预防死锁 
 
 当有线程获取锁的时候，记录下来，相同，如果有线程请求锁，也会记录下来，当有线程请求锁失败时，需要检测是否已经产生死锁。
@@ -74,11 +76,83 @@ cas比较交换来鉴别线程是否出现冲突，出现冲突就重试当前�
 
 8.线程池的种类，区别和使用场景 
 
+线城池原理先判断线程池的核心线程池是否已满，如果已经未满，则创建一个线程来执行任务；如果已经满了，判断当前阻塞队列是否已满，如果未满，则将任务提交到阻塞队列中；如果满了，判断当前线程池线程数是否已经超过最大线程数，如果没有则创建一个新的线程来执行任务，如果满了交给饱和策略进行处理，默认的饱和策略是跑出异常，阻止系统正常运行。
+
+线程池核心参数：
+
+1. corePoolSize：指定了线程池中的核心线程数量。 
+2. maximumPoolSize：指定了线程池中的最大线程数量。 
+3. keepAliveTime：当前线程池数量超过corePoolSize时，多余的空闲线程的存活时间，即多次时间内会被销毁。 
+4. unit：keepAliveTime的单位。
+5. workQueue：任务队列，被提交但尚未被执行的任务,任务队列主要为ArrayBlockingQueue, LinkedBlockingQueue, SynchronousQueue
+6. threadFactory：线程工厂，用于创建线程，一般用默认的即可。 
+7. handler：拒绝策略，当任务太多来不及处理，如何拒绝任务。
+   - AbortPolicy： 直接拒绝所提交的任务，并抛出**RejectedExecutionException**异常 
+   - CallerRunsPolicy：只用调用者所在的线程来执行任务 
+   - DiscardPolicy：不处理直接丢弃掉任务 
+   - DiscardOldestPolicy：丢弃掉阻塞队列中存放时间最久的任务，执行当前任务
+
 9.ThreadLocal原理，用的时候需要注意什么 
 
 通过threadLocal.set方法将对象实例保存在每个线程所拥有的threadLocalMap中，这个每个线程使用自己的对象实例，彼此不会影响互相隔离。每次使用完ThreadLocal，都调用它的remove()方法，清除数据 ，防止内存泄露。
 
 ### spring
+
+1.BeanFactory 和 FactoryBean 
+
+BeanFactory是接口，提供了容器最基本的形式，给具体容器的实现提供了规范
+
+FactoryBean在IOC容器的基础上给Bean的实现加上了一个简单工厂模式和装饰模式 ，可以通过getObject方法装饰bean实例
+
+2.Spring IOC 的理解，其初始化过程 
+
+spring通过配置文件描述bean与bean之间的关系，利用java反射实例化bean并建立bean之间的依赖关系
+
+初始化过程：通过Resource定位bean的 定义的文件，bean配置信息的载入，封装成BeanDefinition,先spring容器注册BeanDefinition，最终是注入到一个HashMap的容器中
+
+3.BeanFactory 和 ApplicationContext 
+
+BeanFactory是接口，定义了容器的基本规范，ApplicationContext实现了BeanFactory接口
+
+4.Spring Bean 的生命周期，如何被管理的 
+
+![1350888580_1225](https://user-images.githubusercontent.com/13096375/53216740-8c630180-3690-11e9-9719-5822d0166131.jpg)
+
+5.Spring Bean 的加载过程是怎样的 
+
+6.Spring 是如何管理事务的，事务管理机制 
+
+　Spring的事务管理机制实现的原理，就是通过这样一个动态代理对所有需要事务管理的Bean进行加载 ，然后通过代理对象中加入事务的逻辑处理代码
+
+7.Spring 的不同事务传播行为有哪些，干什么用的 
+
+propagation.required:如果存在一个事务则支持当前事务，没有事务则开启
+
+propagation.required_new:总是开启一个新的事务，如果已经存在一个事务则将其挂起
+
+propagation.mandatory:如果存在一个事务则支持当前事务，如果没有事务则抛出异常
+
+propagation.supports:如果存在一个事务则支持当前事务，没有事务则非事务的执行
+
+propagation.never:总是非事务的执行，如果存在事务则抛出异常
+
+propagation.not_supported:总是非事务的执行并挂起任何事务 
+
+propatation.nested:如果已经存在一个事务则运行一个嵌套事务(和父事务一起提交， 如果父事务回滚，其也要回滚)
+
+8.Spring 中用到了那些设计模式 
+
+工厂模式（BeanFactory），模板模式(BeanFactory),装饰模式（FactoryBean）,单利模式，代理模式（AOP）
+
+9.BeanPostProcessor和BeanFactoryPostProcessor
+
+BeanFactoryPostProcessor是在加载bean定义，但并未实例化bean对象时，覆盖或添加bean的属性；
+
+BeanPostProcessor是在bean实例化阶段覆盖或添加bean的属性
+
+10.如果理解控制翻转
+
+spring容易管理所有注册的对象，同时对象依赖的其他对象会通过被动的方式传递过来，而不是对象自己去创建或查找依赖。
 
 ### 分布式相关
 
