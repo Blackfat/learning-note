@@ -154,6 +154,28 @@ BeanPostProcessor是在bean实例化阶段覆盖或添加bean的属性
 
 spring容易管理所有注册的对象，同时对象依赖的其他对象会通过被动的方式传递过来，而不是对象自己去创建或查找依赖。
 
+### mybatis
+
+1.通常一个Xml映射文件，都会写一个Dao接口与之对应，请问，这个Dao接口的工作原理是什么？Dao接口里的方法，参数不同时，方法能重载？
+
+调用接口方法时，接口全限名+方法名拼接字符串作为key值，可唯一定位一个MappedStatement 
+
+Dao接口里的方法，是不能重载的，因为是全限名+方法名的保存和寻找策略 
+
+Dao接口的工作原理是JDK动态代理，Mybatis运行时会使用JDK动态代理为Dao接口生成代理proxy对象，代理对象proxy会拦截接口方法，转而执行MappedStatement所代表的sql，然后将sql执行结果返回 
+
+2.简述Mybatis的插件运行原理
+
+Mybatis仅可以编写针对ParameterHandler、ResultSetHandler、StatementHandler、Executor这4种接口的插件，Mybatis使用JDK的动态代理，为需要拦截的接口生成代理对象以实现接口方法拦截功能，每当执行这4种接口对象的方法时，就会进入拦截方法，具体就是InvocationHandler的invoke()方法，当然，只会拦截那些你指定需要拦截的方法。 实现Mybatis的Interceptor接口并复写intercept()方法，然后在给插件编写注解，指定要拦截哪一个接口的哪些方法即可。
+
+3.sql的执行流程图
+
+![181036_sgdu_2727738](https://user-images.githubusercontent.com/13096375/53230230-335f9180-36c1-11e9-819e-3d5d2e93734d.jpg)
+
+- MapperProxy:使用jdk的动态代理功能，间接的实例化Mapper的Proxy对象
+- MapperMethod ：解析Mapper接口的方法，并封装成MapperMethod对象 ； 将Sql命令，正确路由到恰当的SqlSession的方法上 
+- mybatis的拦截器只能拦截ParameterHandler、ResultSetHandler、StatementHandler、Executor共4个接口对象内 
+
 ### 分布式相关
 
 ### 缓存
