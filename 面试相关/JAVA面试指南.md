@@ -248,6 +248,26 @@ circuitBreaker.errorThresholdPercentage
 
 zookeeper中所有的读操作（getData,getChildren,exists)都可以设置watch选项，并且watch事件具有一次性触发的特性。
 
+4.Dubbo的底层实现原理和机制 
+
+dubbo是一个rpc框架，一个soa框架。作为rpc支持多种传输协议， 默认时dubbo协议，底层采用socket进行通讯，默认采用netty长连接进行传输。 作为soa提供了服务治理的功能，提供服务的注册和发现，使用zookeeper作为注册中心，启动时会把所有的服务接口注册到注册中心，并且订阅configurators,服务消费端订阅provide，configurators,routers,订阅变更时，zk会推送providers,configuators，routers,启动时注册长连接，进行通讯 同事提供各种容错机制和负载均衡策略 。
+
+5.描述一个服务从发布到被消费的详细过程 
+
+6.分布式系统怎么做服务治理 
+
+7.接口的幂等性的概念 
+
+8.消息中间件如何解决消息丢失问题 
+
+9.Dubbo的服务请求失败怎么处理 
+
+10.重连机制会不会造成错误 
+
+11.如何实现负载均衡，有哪些算法可以实现 
+
+12.分布式集群下如何做到唯一序列号 
+
 
 
 
