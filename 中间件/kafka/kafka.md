@@ -77,3 +77,38 @@ bin/kafka-console-consumer.sh --bootstrap-server localhost:9092
 --topic ${topicName} --from-beginning
 ```
 
+
+
+#### kafka数据一致性和zookeeper数据一致性的区别
+
+zookeeper数据一致性
+
+zookeeper使用ZAB（zookeeper atomic broadcast）协议，保证leader，follower的一致性，leader负责数据的读写，follower只负责数据的读，如果follower遇到写操作，会提交leader，当leader宕机的话，会快速选举出新的leader，节点一开始都处于选举阶段，只要有一个节点数得到超半数节点的票数，它就可以当选leader。
+
+zab协议
+
+客户端每发送一个更新请求，zookeeper都会生成一个全局唯一的递增编号，这个编号反映所有事务操作的先后顺序，这个编号就是事物ID(ZXID)，只有更新的请求才算是事务请求。为保证按照事务的ZXID先后顺序来处理，Leader服务器会分别为每个Follower服务器创建一个队列，并将事务的先后顺序放入队列中，并按照FIFO的策略进行消息发送。收到需要处理的事务后，Follower服务器会首先以事务日志的形式写入服务器的磁盘中，写入成功后会向Leader服务器发送ACK响应。当Leader服务器收到超过一半的Follower服务器的ACK响应后，会向所有Follower服务器广播Commit消息，收到Commit消息的Follower服务器也会完成对事务的提交。类似于两阶段提交协议，区别在于，两阶段提交协议的第二阶段中，需要等到所有参与者的"YES"回复才会提交事务，只要有一个参与者反馈为"NO"或者超时无反馈，都需要中断和回滚事务。 
+
+>在 ZAB 协议的事务编号 ZXID 设计中， ZXID 是一个 64 位的数字，低 32 位可以看作是一个简单的单调递增的计数器，针对客户端的每一个事务请求， Leader 服务器在产生一个新的事务 Proposal 的时候，都会对该计数器进行加1操作；高 32 位代表了 Leader 周期 epoch 的编号，每当选举产生一个新的 Leader 服务器，就会从这个 Leader 服务器上取出其本地日志中最大事务 Proposal 的 ZXID ,并从该 ZXID 中解析出对应的 epoch 值，然后再对其进行加1操作，之后就会以此编号作为新的 epoch, 并将低 32 位置0来开始生成新的 ZXID 。 
+
+zookeeper的工作方式
+
+- zookeeper集群包括一个leader，多个follower
+- 所有follower都可提供读服务
+- 所有写操作到会被forward到leader
+- client和server通过nio通信
+- 全局串行化所有的写操作
+- 保证同一个客户端的执行被fifo执行
+
+kafka数据一致性
+
+kafka的leader负责读写，follower只负责备份，kafka动态维护了一个同步状态的副本集合，简称ISR（in-sync replica，已同步的副本）（具有f+1个节点）可以允许f个节点宕机的情况下不会丢失消息并正常提供服务。ISR的成员是动态的，如果一个节点被淘汰了，当它达到同步状态是，可以重新加入ISR。如果leader宕机了，直接从ISR中选择一个follower。
+
+kafka 分区leader选举
+
+kafka会在中zookeeper上针对每个Topic维护一个称为ISR的集合，该集合中是一些分区的副本。只有当这些副本都跟Leader中的副本同步了之后，kafka才会认为消息已提交，并反馈给消息的生产者。如果这个集合有增减，kafka会更新zookeeper上的记录 。如果某个分区的Leader不可用，Kafka就会从ISR集合中选择一个副本作为新的Leader。 显然通过ISR，kafka需要的冗余度较低，可以容忍的失败数比较高。假设某个topic有f+1个副本，kafka可以容忍f个服务器不可用。 
+
+kafka控制器选举
+
+kafka的控制器的选举依赖zookeeper，成功竞选为控制器的broker会在zookeeper中创建临时节点(/controller)，在任意时刻，集群中有且仅有一个控制器。zookeeper中还存在一个持久节点(/controller_epoch),用于记录控制器发生变更的次数。每个和控制器交互的请求都会携带controller_epoch字段，如果请求的controller_epoch小于内存中的controller_epoch值，则认为这个请求是向已经过期的控制器发送的请求，请求会判断无效，如果请求的controller_epoch大于内存的controller_epoch值，则说明已经有新的控制器当选了。通过controller_epoch保证了控制器的唯一性。
+
