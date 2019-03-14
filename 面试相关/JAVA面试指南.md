@@ -149,7 +149,7 @@ FactoryBean在IOC容器的基础上给Bean的实现加上了一个简单工厂�
 
 spring通过配置文件描述bean与bean之间的关系，利用java反射实例化bean并建立bean之间的依赖关系
 
-初始化过程：通过Resource定位bean的 定义的文件，bean配置信息的载入，封装成BeanDefinition,先spring容器注册BeanDefinition，最终是注入到一个HashMap的容器中
+初始化过程：通过Resource定位bean的 定义的文件，bean配置信息的载入，封装成BeanDefinition,然后spring容器注册BeanDefinition，最终是注入到一个HashMap的容器中
 
 3.BeanFactory 和 ApplicationContext 
 
@@ -193,7 +193,7 @@ BeanPostProcessor是在bean实例化阶段覆盖或添加bean的属性
 
 10.如果理解控制翻转
 
-spring容易管理所有注册的对象，同时对象依赖的其他对象会通过被动的方式传递过来，而不是对象自己去创建或查找依赖。
+spring容器管理所有注册的对象，同时对象依赖的其他对象会通过被动的方式传递过来，而不是对象自己去创建或查找依赖。
 
 ### mybatis
 
@@ -387,6 +387,20 @@ Redis Cluster集群架构，不同的key会划分到不同的slot中，因此直
 - 对应同一列进行or判断时，使用in代替or
 - 禁止使用order by rand() 进行随机排序
 - WHERE从句中禁止对列进行函数转换和计算 
+
+4.mysql隔离级别
+
+mysql的隔离级别有读未提交，读提交，可重复读，串行化，默认是可重复读。默认为可重复读，主要是读提交的隔离级别下，binlog为statement格式会出现主从不一致。
+
+选个读提交隔离级别的原因：
+
+- 在RR隔离级别下，存在间隙锁，导致出现死锁的概率比RC下大
+- 在RR隔离级别下，添加未命中索引会锁表，而RC隔离级别下只会索行
+- 在RC隔离基本下，binlog设置为row格式更好。
+
+### kafka
+
+
 
 ### JVM
 
