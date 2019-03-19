@@ -62,7 +62,7 @@
 | zrem    | zrem key-name  key                | 从有序集合中移除指定的成员，并返回被移除成员的数量 |
 | zcard   | zcard key-name                    | 返回有序列表的成员数量                             |
 | zincrby | zincrby key-name increment member | 将member成员的分值加上increment                    |
-| zcount  | zcount key-name min max           | 返回分支介于min max之间的成员数量                  |
+| zcount  | zcount key-name min max           | 返回分值介于min max之间的成员数量                  |
 | zrank   | zrank key-name member             | 返回member在有序集成中的排名，从0开始              |
 | zrange  | zrange key-name start stop        | 返回有序集合排名介于start stop之间的成员           |
 | zscore  | zscore key-name member            | 返回成元member的分值                               |
