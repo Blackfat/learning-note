@@ -151,6 +151,15 @@ netty的零拷贝是针对java层面上的，偏向于数据优化。
 - 通过 wrap 操作, 我们可以将 byte[] 数组、ByteBuf、ByteBuffer等包装成一个 Netty ByteBuf 对象, 进而避免了拷贝操作 
 - ByteBuf 支持 slice 操作, 因此可以将 ByteBuf 分解为多个共享同一个存储区域的 ByteBuf, 避免了内存的拷贝 
 
+11.CountDownLatch和CyclicBarrier
+
+- 闭锁CountDownLatch位移的构造函数CountDownLatch(int count)，在闭锁上调用countDown方法，闭锁计数器将减1，当闭锁计数器为0时，闭锁将打开，所有线程将通过闭锁。
+- CyclicBarrier支持一个可选的Runnable参数，当线程当线程在CyclicBarrier对象上调用await()方法时，栅栏的计数器将增加1，当计数器为parties时，栅栏将打开
+
+  闭锁不能重复使用，栅栏可以重复使用。
+
+> 班级集体野炊，在大巴上等待所有同学到来才开始出发；一个班级集合完毕出发一辆大巴，这是CyclicBarrier。到达目的地后需要同学自行寻找食材，寻找到需要的所有食材后才开始做饭，一个班级做饭活动是一次性的，这是CountDownLatch。 
+
 ### spring
 
 1.BeanFactory 和 FactoryBean 
@@ -197,7 +206,7 @@ propatation.nested:如果已经存在一个事务则运行一个嵌套事务(和
 
 8.Spring 中用到了那些设计模式 
 
-工厂模式（BeanFactory），模板模式(BeanFactory),装饰模式（FactoryBean）,单利模式，代理模式（AOP）
+工厂模式（BeanFactory），模板方法(BeanFactory),装饰模式（FactoryBean）,单利模式，代理模式（AOP）
 
 9.BeanPostProcessor和BeanFactoryPostProcessor
 
@@ -330,6 +339,22 @@ dubbo是一个rpc框架，一个soa框架。作为rpc支持多种传输协议，
 
 zookeeper的信息会缓存到本地作为一个缓存文件,并且转换成`properties`对象方便使用 
 
+14.幂等性
+
+- 唯一索引和唯一组合索引防止新增时存在脏数据
+
+- token机制，防止页面重复提交  
+
+  数据提交前要向服务的申请token，token放到redis ，token设置有效时间
+
+  提交后后台校验token，同时删除token，生成新的token返回 
+
+- 更新操作通过版本号实现乐观锁，乐观锁的更新操作，最好用主键或者唯一索引来更新,这样是行锁，否则更新时会锁表 
+
+- 对外提供接口的幂等
+
+  对外提供接口为了支持幂等调用，接口有两个字段必须传，一个是来源source，一个是来源方序列号seq，这个两个字段在提供方系统里面做联合唯一索引 
+
 ### 缓存
 
 1.Redis作为消息队列与RabbitMQ的比较
@@ -417,7 +442,7 @@ mysql的隔离级别有读未提交，读提交，可重复读，串行化，默
 选个读提交隔离级别的原因：
 
 - 在RR隔离级别下，存在间隙锁，导致出现死锁的概率比RC下大
-- 在RR隔离级别下，添加未命中索引会锁表，而RC隔离级别下只会索行
+- 在RR隔离级别下，添加未命中索引会锁表，而RC隔离级别下只会锁 行
 - 在RC隔离基本下，binlog设置为row格式更好。
 
 ### kafka
