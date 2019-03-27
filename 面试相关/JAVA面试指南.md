@@ -153,7 +153,7 @@ netty的零拷贝是针对java层面上的，偏向于数据优化。
 
 11.CountDownLatch和CyclicBarrier
 
-- 闭锁CountDownLatch位移的构造函数CountDownLatch(int count)，在闭锁上调用countDown方法，闭锁计数器将减1，当闭锁计数器为0时，闭锁将打开，所有线程将通过闭锁。
+- 闭锁CountDownLatch唯一的构造函数CountDownLatch(int count)，在闭锁上调用countDown方法，闭锁计数器将减1，当闭锁计数器为0时，闭锁将打开，所有线程将通过闭锁。
 - CyclicBarrier支持一个可选的Runnable参数，当线程当线程在CyclicBarrier对象上调用await()方法时，栅栏的计数器将增加1，当计数器为parties时，栅栏将打开
 
   闭锁不能重复使用，栅栏可以重复使用。
@@ -225,6 +225,10 @@ spring容器管理所有注册的对象，同时对象依赖的其他对象会�
 >RequestMappingHandlerMapping，主要做的工作是将Contoller的带RequestMapping方法，添加到处理方法映射器和路径方法解决器中 。
 
 >RequestMappingHandlerAdapter的主要作用就是调用RequestMappingHandlerMapping所获取到的handler，然后将返回值封装为一个ModelAndView对象 。
+
+12.springboot的运行原理
+
+@SpringBootApplication注解实际上是一个组合注解 ，除了对应用开放的@ComponentScan注解（实现对开发者自定义的应用包扫描）外 ，最核心的注解就是**@EnableAutoConfiguration** ，在逻辑上实现了对所依赖的核心spring-boot-autoconfigture中(META-INF/spring.facotories)中的文件扫描，该文件声明了哪些配置需要被spring容器加载，同时基于条件注解，springboot能够自动加载核心配置，以及其他依赖项目的配置，完成应用的自动初始化。
 
 ### mybatis
 
