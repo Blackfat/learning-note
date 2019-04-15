@@ -182,7 +182,22 @@ BeanFactory是接口，定义了容器的基本规范，ApplicationContext实现
 
 ![1350888580_1225](https://user-images.githubusercontent.com/13096375/53216740-8c630180-3690-11e9-9719-5822d0166131.jpg)
 
+spring解决循环依赖：
+
+在B中创建依赖A时，是通过ObjectFactory提供的实例化方法中断A的属性填充，使得B中持有的A仅仅是刚刚初始化并没有填充任何属性的A，等A创建好属性填充，B可以引用A的完成实例化对象
+
 5.Spring Bean 的加载过程是怎样的 
+
+- 首先判断是否有factory-method的属性，如果有则通过工厂方法实例化bean
+- 解析构造函数，并进行构造函数的初始化，分为有参构造函数的实例化和无参构造函数的实例化，最终将bean封装成BeanWapper,调用实例化策略，如果bean需要动态改变方法的实现，需要通过cglib来进行实力化，一般通过反射实例化。
+- bean属性的注入
+- 检查Aware相关接口并设置相关依赖
+- BeanPostProcessor的前置处理
+- 检查是否是InitializingBean
+- 检查是否配置自定义的init-method
+- BeanPostProcessor的后置处理
+- 检查是否实现DisposableBean接口
+- 检查是否自定义destory方法
 
 6.Spring 是如何管理事务的，事务管理机制 
 
