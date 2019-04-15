@@ -118,7 +118,17 @@ kafka的控制器的选举依赖zookeeper，成功竞选为控制器的broker会
 
 AR:分区中所有的副本
 
-ISR:与leader副本保持一定程度同步的副本的集合( rerplica.lag.time.max.ms  min.insync.replicas request.required.asks )
+ISR:与leader副本保持一定程度同步的副本的集合( rerplica.lag.time.max.ms   rerplica.lag.max.messages  min.insync.replicas request.required.asks )
+
+>rerplica.lag.time.max.ms=10000
+>
+> \# 如果leader发现flower超过10秒没有向它发起fech请求，那么leader考虑这个flower是不是程序出了点问题,或者资源紧张调度不过来，它太慢了，不希望它拖慢后面的进度，就把它从ISR中移除
+>
+>  rerplica.lag.max.messages=4000 
+>
+> \# 相差4000条就移除
+>
+>  \# flower慢的时候，保证高可用性，同时满足这两个条件后又加入ISR中
 
 2.Kafka中的HW、LEO、LSO、LW等分别代表什么？ 
 
