@@ -359,6 +359,16 @@ zookeeper的信息会缓存到本地作为一个缓存文件,并且转换成`pro
 
   对外提供接口为了支持幂等调用，接口有两个字段必须传，一个是来源source，一个是来源方序列号seq，这个两个字段在提供方系统里面做联合唯一索引 
 
+15.Spring cloud Feign 调用过程
+
+- 首先通过@EnableFeignCleints注解开启FeignCleint
+- 根据Feign的规则实现接口，并加@FeignCleint注解
+- 程序启动后，会进行包扫描，扫描所有的@ FeignCleint的注解的类，并将这些信息注入到ioc容器中。
+- 当接口的方法被调用，通过jdk的代理，来生成具体的RequesTemplate
+- RequesTemplate在生成Request
+- Request交给Client去处理，其中Client可以是HttpUrlConnection、HttpClient也可以是Okhttp
+- 最后Client被封装到LoadBalanceClient类，这个类结合类Ribbon做到了负载均衡。
+
 ### 缓存
 
 1.Redis作为消息队列与RabbitMQ的比较
