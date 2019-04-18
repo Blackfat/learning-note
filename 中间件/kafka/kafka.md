@@ -112,6 +112,13 @@ kafka控制器选举
 
 kafka的控制器的选举依赖zookeeper，成功竞选为控制器的broker会在zookeeper中创建临时节点(/controller)，在任意时刻，集群中有且仅有一个控制器。zookeeper中还存在一个持久节点(/controller_epoch),用于记录控制器发生变更的次数。每个和控制器交互的请求都会携带controller_epoch字段，如果请求的controller_epoch小于内存中的controller_epoch值，则认为这个请求是向已经过期的控制器发送的请求，请求会判断无效，如果请求的controller_epoch大于内存的controller_epoch值，则说明已经有新的控制器当选了。通过controller_epoch保证了控制器的唯一性。
 
+kafka控制器作用
+
+- 监听分区相关的变化（分区重分配；ISR集合变更;优先副本的选举）
+- 监听主题相关的变化
+- 监听broker相关的变化
+- 更新集群的元数据
+
 #### kafka基础知识
 
 1.Kafka中的ISR、AR又代表什么？ISR的伸缩又指什么 
@@ -124,13 +131,15 @@ ISR:与leader副本保持一定程度同步的副本的集合( rerplica.lag.time
 >
 > \# 如果leader发现flower超过10秒没有向它发起fech请求，那么leader考虑这个flower是不是程序出了点问题,或者资源紧张调度不过来，它太慢了，不希望它拖慢后面的进度，就把它从ISR中移除
 >
->  rerplica.lag.max.messages=4000 
+>  rerplica.lag.max.messages=4000 (有些版本已经删除)
 >
 > \# 相差4000条就移除
 >
 >  \# flower慢的时候，保证高可用性，同时满足这两个条件后又加入ISR中
 
 2.Kafka中的HW、LEO、LSO、LW等分别代表什么？ 
+
+>消费者提交偏移量的主要是消费者往一个名为`_consumer_offset`的特殊主题发送消息，消息中包含每个分区的偏移量。 如果消费者一直运行，偏移量的提交并不会产生任何影响。但是如果有消费者发生崩溃，或者有新的消费者加入消费者群组的时候，会触发 Kafka 的再均衡。这使得 Kafka 完成再均衡之后，每个消费者可能被会分到新分区中。为了能够继续之前的工作，消费者就需要读取每一个分区的最后一次提交的偏移量，然后从偏移量指定的地方继续处理。
 
 HW:分区副本消息的偏移量，消费者只能拉取这个偏移量之前的消息
 
@@ -184,11 +193,11 @@ LW:AR集合中最小的logStartOffset，日志分段被清理或删除消息请�
 
 11.topic的分区数可不可以增加？如果可以怎么增加？如果不可以，那又是为什么？ 
 
-
+topic的可以增加，通过`kafka-topics.sh alter`增加，当主题中消息key不为null时，增加分区会影响既定的消息顺序。对于基于key计算的主题，建议一开始就设置好分区数量。
 
 12.topic的分区数可不可以减少？如果可以怎么减少？如果不可以，那又是为什么？ 
 
-
+topic的不可以减少，主要是删除分区后，分区的消息处理。
 
 13.创建topic时如何选择合适的分区数 
 
@@ -196,11 +205,11 @@ LW:AR集合中最小的logStartOffset，日志分段被清理或删除消息请�
 
 14.Kafka目前有那些内部topic，它们都有什么特征？各自的作用又是什么 
 
-
+_consumer_offsets 和__tranaction_state 
 
 15.优先副本是什么？它有什么特殊的作用 
 
-
+优先副本是指AR集合中的第一个副本，通过保障优先副本的均衡分布，保障leader副本额均匀分布。通过优先将优先副本选举成leader副本，促进集群的分区负载均衡。
 
 16.Kafka中的事务是怎么实现的
 
