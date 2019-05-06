@@ -10,7 +10,9 @@
 
 ### 安装mysql
 
-- yum -y install mysql-community-release-el7-5.noarch.rpm 
+- wget http://repo.mysql.com//mysql57-community-release-el6-9.noarch.rpm
+
+- yum -y install mysql57-community-release-el6-9.noarch.rpm
 - yum -y install mysql-community-server
 - systemctl enable mysqld
 - service mysql start
