@@ -115,7 +115,7 @@ git打标签
 
 ##### git关联远程分支
 
-git 	--set-upstream-to origin/远程分支名（相对于当前分支）
+git  branch	--set-upstream-to origin/远程分支名（相对于当前分支）
 
 
 
