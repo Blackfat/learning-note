@@ -67,3 +67,16 @@ es将数据分为主从两部分，即主分片和副分片，写过程中先写
 | update | POST my_index/update/1                 |
 | delete | DELETE  my_index/_doc/1                |
 
+###分词器
+
+| 分词器名称          | 描述                            |
+| ------------------- | ------------------------------- |
+| Standard Analyzer   | 默认分词器，按词切分，小写处理  |
+| Simple Analyzer     | 按照非字母切分，小写处理        |
+| Stop Analyzer       | 小写处理，停用词过滤(the a is)  |
+| Whitespace Analyzer | 按照空格切分，不转小写          |
+| Keyord Analyzer     | 不分词，直接将输入当输出        |
+| Patter Analyzer     | 正则表达式，默认\W+(非字符分割) |
+
+
+
