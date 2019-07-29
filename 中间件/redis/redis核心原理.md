@@ -80,3 +80,8 @@ Redis 协议将传输的结构数据分为 5 种最小单元类型，单元结�
 - allkeys-lru 区别于 volatile-lru，这个策略要淘汰的 key 对象是全体的 key 集合，而不只是设置了过期时间的 key 集合。这意味着没有设置过期时间的 key 也会被淘汰。 
 - allkeys-random 跟上面一样，不过淘汰的策略是随机的 key。allkeys-random 跟上面一样，不过淘汰的策略是随机的 key。 
 
+### redis字符串编码
+
+- **int**：8个字节的长整型。字符串值是整型时，这个值使用long整型表示。
+- **embstr**：<=39字节的字符串。embstr与raw都使用redisObject和sds保存数据，区别在于，embstr的使用只分配一次内存空间（因此redisObject和sds是连续的），而raw需要分配两次内存空间（分别为redisObject和sds分配空间）。因此与raw相比，embstr的好处在于创建时少分配一次空间，删除时少释放一次空间，以及对象的所有数据连在一起，寻找方便。而embstr的坏处也很明显，如果字符串的长度增加需要重新分配内存时，整个redisObject和sds都需要重新分配空间，因此redis中的embstr实现为只读。
+- 
