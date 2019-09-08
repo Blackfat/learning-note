@@ -78,5 +78,176 @@ es将数据分为主从两部分，即主分片和副分片，写过程中先写
 | Keyord Analyzer     | 不分词，直接将输入当输出        |
 | Patter Analyzer     | 正则表达式，默认\W+(非字符分割) |
 
+### search API
+
+| 语法                   | 范围               |
+| ---------------------- | ------------------ |
+| /_search               | 集群上所有的索引   |
+| /index/_search         | index              |
+| /index1,index2/_search | Index1,index2      |
+| /index*/_search        | 以lindex开头的索引 |
+
+#### URI Search
+
+#### term和phrase
+
+- term 根据文档中的字段关键词查询
+
+  ```xquery
+  GET /movies/_search?q=title:(Beautiful Mind)
+  {
+  	"profile":"true"
+  }
+  ```
+
+  等价于
+
+  ```xquery
+  GET /movies/_search?q=title:(Beautiful OR Mind)
+  {
+  	"profile":"true"
+  }
+  ```
+
+
+  布尔操作支持 
+
+- `AND`
+
+- `OR`
+
+- `NOT`
+
+分组操作支持
+
+- `+`表示must
+
+- `-`表示must not
+
+- filedname:(+A -B)
+
+范围查询
+
+- 区间表示：[]表示闭区间，{}表示开区间
+
+  ```
+  year:{2019 TO 2016}
+  ```
+
+  ```
+  year:[* TO 2019]
+  ```
+
+- 算数符号
+
+  ```
+  year:>2019
+  ```
+
+  ```
+  year:(>2010 && <=2019)
+  ```
+
+- 模糊匹配和近似查询
+
+  ```
+  title:beautiful~1
+  ```
+
+  ```
+  title:"loads rings"~2
+  ```
+
+- phrase 根据文档中的字段关键词查询，同时关键词出现的顺序需要一致
+
+  ```xquery
+  GET /movies/_search?q=title:"Beautiful Mind"
+  {
+  	"profile":"true"
+  }
+  ```
+
+  
+
+### DSL
+
+ - term查询（精确查询，搜索前不会对搜索词进行分词）
+
+   ```xquery
+   POST movies/_search
+   {
+     "query": {
+       "term": {
+           "title": "one love"
+       }
+     }
+   }
+   ```
+
+ - match查询（模糊查询，搜索前对搜索词进行分词，搜索词的分词再文档中存在即可）
+
+   ```xquery
+   POST movies/_search
+   {
+     "query": {
+       "match": {
+         "title": "last christmas"
+       }
+     }
+   }
+   ```
+
+ - match_phrase(短语查询，搜索前对搜索词进行分词，并要求所有的分词都在文档中出现，同时还需要满足分词在文档中出现的顺序和搜索词中出现的一致且各搜索词必须紧邻，可以通过`slop`参数设置间隔多少个词仍算作匹配成功)
+
+   ```xquery
+   POST movies/_search
+   {
+     "query": {
+       "match_phrase": {
+         "title":{
+           "query": "one love",
+           "slop": 1
+         }
+       }
+     }
+   }
+   ```
+
+- query_string
+
+  ```xquery
+  GET /movies/_search
+  {
+  	"profile": true,
+  	"query":{
+  		"query_string":{
+  			"fields":[
+  				"title",
+  				"year"
+  			],
+  			"query": "2012"
+  		}
+  	}
+  }
+  ```
+
+- simple_query_string
+
+  ```xquery
+  #simple_query_string 默认的operator是 OR
+  POST users/_search
+  {
+    "query": {
+      "simple_query_string": {
+        "query": "Ruan Yiming",
+        "fields": ["name"],
+        "default_operator": "AND"
+      }
+    }
+  }
+  ```
+
+  
+
 
 
