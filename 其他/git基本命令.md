@@ -67,6 +67,10 @@
 
 从远程仓库克隆
 
+#####git clone -b branchname  git@server-name:path/repo-name.git
+
+从远程仓库指定分支克隆
+
 ##### git checkout -b branchname
 
 创建分支并切换相当于`git branch branchname`和`git checkout branchname`
