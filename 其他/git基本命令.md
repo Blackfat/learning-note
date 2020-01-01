@@ -121,5 +121,12 @@ git打标签
 
 git  branch	--set-upstream-to origin/远程分支名（相对于当前分支）
 
+##### git修改当前项目的邮箱和用户名
 
+git config user.email "***@**.com"
+git config user.name "你的用户名"
 
+##### git修改全局的邮箱和用户名
+
+git config  --gobal user.email "***@**.com"
+git config --gobal user.name "你的用户名"
