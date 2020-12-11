@@ -49,7 +49,7 @@ handle_others()  # 处理其它事情，如定时任务等
 
  
 
-通过`select`系统调用同时处理多个通道描述符的读写事件，因此我们将这类系统调用称为多路复用 API。现代操作系统的多路复用 API 已经不再使用`select`系统调用，而改用`epoll(linux)`和`kqueue(freebsd & macosx)`，因为 select 系统调用的性能在描述符特别多时性能会非常差 。 
+通过`select`系统调用，单个应用系统线程可以同时处理多个通道描述符的读写事件，我们将这类系统调用称为多路复用 API。现代操作系统的多路复用 API 已经不再使用`select`系统调用，而改用`epoll(linux)`和`kqueue(freebsd & macosx)`，因为 select 系统调用的性能在描述符特别多时性能会非常差 。 
 
 #### 指令队列
 
