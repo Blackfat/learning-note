@@ -2,6 +2,77 @@
 
 需要的数据并不在当前节点上，需要做一次转向处理，其中，MOVED是永久转向信号，ASK则表示只需要这一次操作做转向。对于客户端，收到MOVED时，需要更新slot映射信息，收到ASK时，则需要向新节点发ASKING命令并重新执行操作。
 
+## 哨兵的底层原理
+
+### sdown和odown转换机制
+
+>sdown是主观宕机，就一个哨兵如果自己觉得一个master宕机了，那么就是主观宕机
+>
+>odown是客观宕机，如果quorum数量的哨兵都觉得一个master宕机了，那么就是客观宕机
+
+sdown达成的条件很简单，如果一个哨兵ping一个master，超过了is-master-down-after-milliseconds指定的毫秒数之后，就主观认为master宕机。
+
+sdown到odown转换的条件很简单，如果一个哨兵在指定时间内，收到了quorum指定数量的其他哨兵也认为那个master是sdown了，那么就认为是odown了，客观认为master宕机。
+
+###哨兵的自动发现
+
+哨兵互相之间的发现，是通过redis的pub/sub系统实现的，每个哨兵都会往__sentinel__:hello这个channel里发送一个消息，这时候所有其他哨兵都可以消费到这个消息，并感知到其他的哨兵的存在。
+
+每隔两秒钟，每个哨兵都会往自己监控的某个master+slaves对应的__sentinel__:hello channel里发送一个消息，内容是自己的host、ip和runid还有对这个master的监控配置。
+
+每个哨兵也会去监听自己监控的每个master+slaves对应的__sentinel__:hello channel，然后去感知到同样在监听这个master+slaves的其他哨兵的存在。
+
+每个哨兵还会跟其他哨兵交换对master的监控配置，互相进行监控配置的同步。
+
+### 主备切换的选举算法
+
+如果一个slave跟master断开连接已经超过了down-after-milliseconds的10倍，外加master宕机的时长，那么slave就被认为不适合选举为master。(down-after-milliseconds * 10) + milliseconds_since_master_is_in_SDOWN_state
+
+接下来会对slave进行排序
+
+（1）按照slave优先级进行排序，slave priority越低，优先级就越高
+
+（2）如果slave priority相同，那么看replica offset，哪个slave复制了越多的数据，offset越靠后，优先级就越高
+
+（3）如果上面两个条件都相同，那么选择一个run id比较小的那个slave
+
+### configuration epoch
+
+哨兵会对一套redis master+slave进行监控，有相应的监控的配置。
+
+执行切换的那个哨兵，会从要切换到的新master（salve->master）那里得到一个configuration epoch，这就是一个version号，每次切换的version号都必须是唯一的。
+
+如果第一个选举出的哨兵切换失败了，那么其他哨兵，会等待failover-timeout时间，然后接替继续执行切换，此时会重新获取一个新的configuration epoch，作为新的version号。
+
+### configuraiton传播
+
+哨兵完成切换之后，会在自己本地更新生成最新的master配置，然后同步给其他的哨兵，就是通过之前说的pub/sub消息机制。
+
+这里之前的version号就很重要了，因为各种消息都是通过一个channel去发布和监听的，所以一个哨兵完成一次新的切换之后，新的master配置是跟着新的version号的。
+
+其他的哨兵都是根据版本号的大小来更新自己的master配置的。
+
+
+
+## redis cluster 底层原理
+
+###集群通信
+
+集中式：好处在于，元数据的更新和读取，时效性非常好，一旦元数据出现了变更，立即就更新到集中式的存储中，其他节点读取的时候立即就可以感知到; 不好在于，所有的元数据的跟新压力全部集中在一个地方，可能会导致元数据的存储有压力。
+
+gossip：好处在于，元数据的更新比较分散，不是集中在一个地方，更新请求会陆陆续续，打到所有节点上去更新，有一定的延时，降低了压力; 缺点，元数据更新有延时，可能导致集群的一些操作会有一些滞后。
+
+### gossip协议
+
+meet: 某个节点发送meet给新加入的节点，让新节点加入集群中，然后新节点就会开始与其他节点进行通信
+
+ping: 每个节点都会频繁给其他节点发送ping，其中包含自己的状态还有自己维护的集群元数据，互相通过ping交换元数据
+
+pong: 返回ping和meet，包含自己的状态和其他信息，也可以用于信息广播和更新
+
+fail: 某个节点判断另一个节点fail之后，就发送fail给其他节点，通知其他节点，指定的节点宕机了
+
+
 
 ## redis持久化
 
@@ -130,6 +201,8 @@ Redis 同样也会为每个客户端套接字关联一个响应队列。Redis �
 
 ### redis通信协议（RESP）
 
+> 客户端和服务端的通讯协议
+
 Redis 协议将传输的结构数据分为 5 种最小单元类型，单元结束时统一加上回车换行符号`\r\n`。
 
 1. 单行字符串 以 `+` 符号开头。
@@ -150,7 +223,7 @@ Redis 协议将传输的结构数据分为 5 种最小单元类型，单元结�
 ### redis字符串编码
 
 - **int**：8个字节的长整型。字符串值是整型时，这个值使用long整型表示。
-- **embstr**：<=39字节的字符串。embstr与raw都使用redisObject和sds保存数据，区别在于，embstr的使用只分配一次内存空间（因此redisObject和sds是连续的），而raw需要分配两次内存空间（分别为redisObject和sds分配空间）。因此与raw相比，embstr的好处在于创建时少分配一次空间，删除时少释放一次空间，以及对象的所有数据连在一起，寻找方便。而embstr的坏处也很明显，如果字符串的长度增加需要重新分配内存时，整个redisObject和sds都需要重新分配空间，因此redis中的embstr实现为只读。
+- **embstr**：<=44字节的字符串。embstr与raw都使用redisObject和sds保存数据，区别在于，embstr的使用只分配一次内存空间（因此redisObject和sds是连续的），而raw需要分配两次内存空间（分别为redisObject和sds分配空间）。因此与raw相比，embstr的好处在于创建时少分配一次空间，删除时少释放一次空间，以及对象的所有数据连在一起，寻找方便。而embstr的坏处也很明显，如果字符串的长度增加需要重新分配内存时，整个redisObject和sds都需要重新分配空间，因此redis中的embstr实现为只读。
 
 
 
