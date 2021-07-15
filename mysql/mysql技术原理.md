@@ -1,3 +1,5 @@
+
+
 ### mysql架构
 
 ![mysql](https://user-images.githubusercontent.com/13096375/49052432-c013c400-f226-11e8-87f2-62e3066c7add.png)
@@ -163,6 +165,8 @@ InnoDB 的索引模型
 
 
 ### 锁
+
+> 共享锁(S)和排他锁(X)，当前读会加排他锁(select for update|update|delete)
 
 全局锁
 
@@ -399,3 +403,22 @@ log buffer
 change buffer 
 
 写缓存（change Buffer） 是一种特殊的数据结构，**用于在对数据变更时，如果数据所在的数据页没有在 buffer pool 中的话，在不影响数据一致性的前提下，InnoDB 引擎会将对数据的操作缓存在 Change Buffer 中**，这样就省去了从磁盘中读入这个数据页。将 change buffer 中的操作应用到原数据页，得到最新结果的过程称为 merge。如果数据库都是唯一索引，那么在每次操作的时候都需要判断索引是否有冲突，势必要将数据加载到缓存中对比，因此也用不到 Change Buffer。change buffer 主要节省的则是随机读磁盘的 IO 消耗。
+
+### 主备一致
+
+备库设置成(只读)readonly模式(readonly 设置对超级 (super) 权限用户是无效的，而用于同步更新的线程，就拥有超级权限)
+
+- 有时候一些运营类的查询语句会被放到备库上去查，设置为只读可以防止误操作；
+
+- 防止切换逻辑有 bug，比如切换过程中出现双写，造成主备不一致；
+
+- 可以用 readonly 状态，来判断节点的角色。
+
+事务日志同步的流程：
+
+- 在备库上通过 change master 命令，设置主库  的 IP、端口、用户名、密码，以及要从哪个位置开始请求 binlog，这个位置包含文件名和日志偏移量。
+
+- 在备库上执行 start slave 命令，这时候备库会启动两个线程，就是图中的 io_thread 和 sql_thread。其中 io_thread 负责与主库建立连接。
+- 主库 校验完用户名、密码后，开始按照备库  传过来的位置，从本地读取 binlog，发给备库。
+- 备库拿到 binlog 后，写到本地文件，称为中转日志（relay log）
+- sql_thread 读取中转日志，解析出日志里的命令，并执行。
