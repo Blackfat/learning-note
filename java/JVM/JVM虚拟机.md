@@ -39,6 +39,26 @@
 5. 线程对其他线程的中断操作 happens-before 被中断线程所收到的中断事件（即被中断线程的 InterruptedException 异常，或者第三个线程针对被中断线程的 Thread.interrupted 或者 Thread.isInterrupted 调用）。
 6. 构造器中的最后一个操作 happens-before 析构器的第一个操作。 
 
+##### volatile和synchronized的内存语义
+
+进入 synchronized 时，使得本地缓存失效，synchronized 块中对共享变量的读取必须从主内存读取；退出 synchronized 时，会将进入 synchronized 块之前和 synchronized 块中的写操作刷入到主存中。
+
+读一个 volatile 变量之前，需要先使相应的本地缓存失效，这样就必须到主内存读取最新值，写一个 volatile 属性会立即刷入到主内存。所以，volatile 读和 monitorenter 有相同的语义，volatile 写和 monitorexit 有相同的语义。
+
+为了实现volatile的内存语义，编译器在生成字节码时，会在指令序列中插入内存屏障来禁止特定类型的处理器重排序。StoreStore屏障将保障上面所有的普通写在volatile写之前刷新到主内存。StoreLoad屏障是避免volatile写与后面可能有的volatile读/写操作重排序。LoadLoad屏障用来禁止处理器把上面的volatile读与下面的普通读重排序。LoadStore屏障用来禁止处理器把上面的volatile读与下面的普通写重排序。
+
+##### cas的内存语义
+
+由于Java的CAS同时具有volatile读和volatile写的内存语义，因此Java线程之间的通信现在有了下面4种方式。
+
+1）A线程写volatile变量，随后B线程读这个volatile变量。
+
+2）A线程写volatile变量，随后B线程用CAS更新这个volatile变量。
+
+3）A线程用CAS更新一个volatile变量，随后B线程用CAS更新这个volatile变量。
+
+4）A线程用CAS更新一个volatile变量，随后B线程读这个volatile变量。
+
 #### java对象的内存布局
 
 HotSpot虚拟机中，一个java对象由3个部分组成：
