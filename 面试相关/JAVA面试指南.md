@@ -47,7 +47,7 @@ HashSet底层通过HashMap实现，首选元素的hashCode获取元素的存储�
 
 3.HashMap是线程安全的
 
-HashMap不是线程安全的，在多线程同时操作的情况下，有可能出现循环链表，造成cpu使用率100%
+HashMap不是线程安全的，是因为多线程会导致HashMap的Entry链表形成环形数据结构，一旦形成环形数据结构，Entry的next节点永远不为空，就会产生死循环获取Entry，造成cpu使用率100%
 
 4.HashMap 的扩容过程 
 
