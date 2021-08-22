@@ -176,6 +176,44 @@ netty的零拷贝是针对java层面上的，偏向于数据优化。
 
 ### spring
 
+1.spring ioc的初始化流程
+
+寻找用户定义的bean资源，由ResourceLoader通过统一的接口Resource来完成
+
+BeanDefinitionReader读取解析Resource定位的资源成BeanDefinition载入ioc中
+
+向IOC容器注册这些BeanDefinition， 通过BeanDefinitionRegistery实现
+
+2.spring ioc的依赖注入流程
+
+Ioc初始化后，依赖注入的过程是用户第一次向IoC容器索要Bean时触发
+
+- 如果设置lazy-init=true，会在第一次getBean的时候才初始化bean， lazy-init=false，会容器启动的时候直接初始化（singleton bean）；
+- 调用BeanFactory.getBean（）生成bean的；
+- 生成bean过程运用装饰器模式产生的bean都是beanWrapper（bean的增强）；
+3. spring 如何解决循环依赖
+
+   spring中循环依赖的场景：
+
+   - 构造器依赖
+   - 属性依赖
+
+   spring解决方法：
+
+   - singletonObjects：第一级缓存，里面放置的是实例化好的单例对象；
+   - earlySingletonObjects：第二级缓存，里面存放的是提前曝光的单例对象；
+   - singletonFactories：第三级缓存，里面存放的是要被实例化的对象的对象工厂
+   - 创建bean的时候Spring首先从一级缓存singletonObjects中获取。如果获取不到，并且对象正在创建中，就再从二级缓存earlySingletonObjects中获取，如果还是获取不到就从三级缓存singletonFactories中取（Bean调用构造函数进行实例化后，即使属性还未填充，就可以通过三级缓存向外提前暴露依赖的引用值（提前曝光），根据对象引用能定位到堆中的对象，其原理是基于Java的引用传递），取到后从三级缓存移动到了二级缓存完全初始化之后将自己放入到一级缓存中供其他使用，
+   - 因为加入singletonFactories三级缓存的前提是执行了构造器，所以构造器的循环依赖没法解决。
+   - 构造器循环依赖解决办法：在构造函数中使用@Lazy注解延迟加载。在注入依赖时，先注入代理对象，当首次使用时再创建对象说明：一种互斥的关系而非层次递进的关系，故称为三个Map而非三级缓存的缘由 完成注入；
+
+4. BeanPostProcessor.postProcessBeforeInstantiation和BeanPostProcessor.getEarlyBeanReference区别
+
+   postProcessBeforeInstantiation：如果我们有自定义的TargetSource，抑制目标Bean的不必要的默认实例化（不通过spring去创建）：TargetSource将以自定义方式处理目标实例（自己实现创建bean的流程，属性填充、初始化等）。**调用时机是在创建bean之前（这个时候bean还没有进入spring的创建流程，连实例对象都还没有创建），并且如果返回的bean不为空，那就不走spring 创建bean的流程了。**
+
+   getEarlyBeanReference：判断这个bean是否被代理过，如果有，则直接返回传进来的，避免创建多个代理对象。如果没有被代理过，则创建代理对象，记录到缓存中，然后返回代理对象。**bean其实还是走完了spring bean自身的创建流程的，只不过最终是返回了代理对象被spring 容器管理。**
+
+
 1.BeanFactory 和 FactoryBean 
 
 BeanFactory是接口，提供了容器最基本的形式，给具体容器的实现提供了规范
@@ -488,7 +526,76 @@ mysql的隔离级别有读未提交，读提交，可重复读，串行化，默
 - 在RR隔离级别下，添加未命中索引会锁表，而RC隔离级别下只会锁 行
 - 在RC隔离基本下，binlog设置为row格式更好。
 
-### kafka
+### RocketMQ
+
+1.消息发送NameServer 挂机和Broker挂机宕机
+
+1、NameServer 挂机
+
+在发送消息阶段，如果生产者本地缓存中没有缓存 topic 的路由信息，则需要从 NameServer 获取，只有当所有 NameServer 都不可用时，此时会抛 MQClientException。如果所有的 NameServer 全部挂掉，并且生产者有缓存 Topic 的路由信息，此时依然可以发送消息。所以，NameServer 的宕机，通常不会对整个消息发送带来什么严重的问题。
+
+2、Broker挂机
+
+基础知识：消息生产者每隔 30s 从 NameServer 处获取最新的 Broker 存活信息（topic路由信息），Broker 每30s 向所有的 NameServer 报告自己的情况，故 Broker 的 down 机，Procuder 的最大可感知时间为 60s,在这 60s，消息发送会有什么影响呢？
+
+此时分两种情况分别进行分析。
+
+1）启用sendLatencyFaultEnable
+
+由于使用了故障延迟机制，详细原理见上文详解，会对获取的 MQ 进行可用性验证，比如获取一个MessageQueue 发送失败，这时会对该 Broker 进行标记，标记该 Broker 在未来的某段时间内不会被选择到，默认为（5分钟，不可改变），所有此时只有当该 topic 全部的 broker 挂掉，才无法发送消息，符合高可用设计。
+
+2）不启用sendLatencyFaultEnable = false
+
+此时会出现消息发送失败的情况，因为默认情况下，procuder 每次发送消息，会采取轮询机制取下一个 MessageQueue,由于可能该 Message 所在的Broker挂掉，会抛出异常。因为一个 Broker 默认为一个 topic 分配4个 messageQueue,由于默认只重试2次，故消息有可能发送成功，有可能发送失败。
+
+2. 通讯机制
+
+RocketMQ消息队列集群主要包括NameServer、Broker(Master/Slave)、Producer、Consumer4个角色，基本通讯流程如下：
+
+(1) Broker启动后需要完成一次将自己注册至NameServer的操作；随后每隔30s时间定时向NameServer上报Topic路由信息。
+
+(2) 消息生产者Producer作为客户端发送消息时候，需要根据消息的Topic从本地缓存的TopicPublishInfoTable获取路由信息。如果没有则更新路由信息会从NameServer上重新拉取，同时Producer会默认每隔30s向NameServer拉取一次路由信息。
+
+(3) 消息生产者Producer根据2）中获取的路由信息选择一个队列（MessageQueue）进行消息发送；Broker作为消息的接收者接收消息并落盘存储。
+
+(4) 消息消费者Consumer根据2）中获取的路由信息，并再完成客户端的负载均衡后，选择其中的某一个或者某几个消息队列来拉取消息并进行消费。
+
+3. 消息的读写分离
+
+第一种，Mmap+PageCache的方式，读写消息都走的是pageCache，这样子读写都在pagecache里面不可避免会有锁的问题，在并发的读写操作情况下，会出现缺页中断降低，内存加锁，污染页的回写。
+
+第二种，DirectByteBuffer(堆外内存)+PageCache的两层架构方式，这样子可以实现读写消息分离，写入消息时候写到的是DirectByteBuffer——堆外内存中,读消息走的是PageCache(对于,DirectByteBuffer是两步刷盘，一步是刷到PageCache，还有一步是刷到磁盘文件中)，带来的好处就是，避免了内存操作的并发读写的问题，降低了时延，比如说缺页中断降低，内存加锁，污染页的回写。
+
+4.rebalance
+
+1.启动时，发送心跳加入消费者组，并立即触发一次rebalance
+
+2.运行时，监听Broker通知触发rebalance，周期触发rebalance
+
+3.RocketMQ按照Topic维度进行Rebalance，会导致一个很严重的结果：如果一个消费者组订阅多个Topic，可能会出现分配不均，部分消费者处于空闲状态。
+
+4.顺序消息时，添加该消息队列的拉取任务之前，首先要先尝试锁定消费者，不同消费组的消费者可以同时锁定同一个消息消费队列，集群模式下同一个消费组内只能被一个消费者锁定，如果锁定成功，则添加到拉取任务中，如果锁定未成功，说明虽然发送了消息队列重新负载，但该消息队列还未被释放，本次负载周期不会进行消息拉取。
+
+5.RocketMQ和Kafka rebalance的区别
+
+Kafka：会在消费者组的多个消费者实例中，选出一个作为Group Leader，由这个Group Leader来进行分区分配，分配结果通过Cordinator(特殊角色的broker)同步给其他消费者。相当于Kafka的分区分配只有一个大脑，就是Group Leader。
+
+RocketMQ：每个消费者，自己负责给自己分配队列，相当于每个消费者都是一个大脑。对Topic队列，以及消费者各自进行排序，每个消费者使用相同的分配策略。
+
+6.RocketMQ的顺序消息
+
+Rebalance：顺序消息时，添加该消息队列的拉取任务之前，首先要先尝试锁定消费者，不同消费组的消费者可以同时锁定同一个消息消费队列，集群模式下同一个消费组内只能被一个消费者锁定，如果锁定成功，则添加到拉取任务中，如果锁定未成功，说明虽然发送了消息队列重新负载，但该消息队列还未被释放，本次负载周期不会进行消息拉取。
+
+Pull:根据 PullRequest 拉取消息。如果处理队列未被锁定，则延迟拉取消息，也就说消息消费需要在ProceeQueue 队列被自己锁定的情况下才会拉取消息，否则将 PullRequest 延迟3s再拉取。并且PullRequest 的初始拉取点在拉取时只在第一次拉取时设置。
+
+Consume:在消费某一个消息消费队列时先加锁，意味着一个消费者内消费线程池中的线程并发度是消息消费队列级别，同一个消费队列在同一时刻只会被一个线程消费，其他线程排队消费。
+
+7.集群模式非顺序消息消费者偏移量如何保持的
+集群模式下，消费者端可能存在多个线程同时消费一个MessageQueue，为了防止消息的丢失，消息消费成功返回的消息偏移量可能不是消息本身的偏移量，而是队列中最小的偏移量，可能造成消息重复消费。
+
+
+
+###kafka
 
 
 
