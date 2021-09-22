@@ -151,7 +151,7 @@ LW:AR集合中最小的logStartOffset，日志分段被清理或删除消息请�
 
 3.Kafka中是怎么体现消息顺序性的 
 
-通过message的key相同的message保证消费顺序，同时也要防止消息重试对消息顺序的影响（max.in.flight.requests.per.connection = 1 保证在后一条消息发送前，前一条的消息状态已经是可知的 ）
+通过message的key相同的message保证消费顺序，同时也要防止消息重试对消息顺序的影响（max.in.flight.requests.per.connection = 1 每个网络连接可以忍受 producer端发送给broker 消息然后消息没有响应的个数。 保证在后一条消息发送前，前一条的消息状态已经是可知的 ）
 
 4.Kafka中的分区器、序列化器、拦截器是否了解？它们之间的处理顺序是什么 
 

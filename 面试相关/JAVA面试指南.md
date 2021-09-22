@@ -518,13 +518,22 @@ Redis Cluster集群架构，不同的key会划分到不同的slot中，因此直
 
 4.mysql隔离级别
 
-mysql的隔离级别有读未提交，读提交，可重复读，串行化，默认是可重复读。默认为可重复读，主要是读提交的隔离级别下，binlog为statement格式会出现主从不一致。
+mysql的隔离级别有读未提交，读提交，可重复读，串行化，默认是可重复读。默认为可重复读，主要是读提交的隔离级别下，binlog为statement格式，记录的是sql的执行原文，在从库的执行顺序和主库可能不同，会出现主从不一致。
 
 选个读提交隔离级别的原因：
 
 - 在RR隔离级别下，存在间隙锁，导致出现死锁的概率比RC下大
-- 在RR隔离级别下，添加未命中索引会锁表，而RC隔离级别下只会锁 行
 - 在RC隔离基本下，binlog设置为row格式更好。
+
+5. 字符串创建索引
+
+- 直接创建完整索引，这样可能比较占用空间；
+
+- 创建前缀索引，节省空间，但会增加查询扫描次数，并且不能使用覆盖索引；
+
+- 倒序存储，再创建前缀索引，用于绕过字符串本身前缀的区分度不够的问题；
+
+- 创建 hash 字段索引，查询性能稳定，有额外的存储和计算消耗，跟第三种方式一样，都不支持范围扫描。
 
 ### RocketMQ
 
@@ -597,9 +606,30 @@ Consume:在消费某一个消息消费队列时先加锁，意味着一个消费
 
 ###kafka
 
+1.kafka是如何实现rebalance的
+
+- 每个consumer group会选择一个broker作为coordinator,负责监控消费者组中各个消费者的心跳
+
+  然后开启rebalance
+
+- 首先对groupid进行hash，接着对_consumer_offsets的分区数取模，分区所在的broker机器就是coordinator机器
+
+- - consumer发送joinGroup请求到coordinator
+  - coordinator从consumer group中选择一个consumer最为leader
+  - leader会指定消费方案，通过synGroup发送给coordinator
+  - coordinator把消费方案发送给各个consumer，consumer从指定分区的leader broker开始建立连接以及消费消息
+
+2.kafka的协调器
+
+每个 Kafka Server 启动时都会创建一个 GroupCoordinator 实例，**用于管理部分消费者组和该消费者组下的每个消费者的消费偏移量**。同时**在客户端引入了消费者协调器(ConsumerCoordinator)**，实例化一个消费者就会实例化一个 ConsumerCoordinator 对象，ConsumerCoordinator **负责同一个消费者组下各消费者与服务端的 GroupCoordinator 进行通信**。
+
 
 
 ### JVM
+
+G1
+
+G1不再坚持固定大小以及固定数量的分代区域划分，而是把连续的Java堆划分为多个大小相等的独立区域（Region），每一个Region都可以根据需要，扮演新生代的Eden空间、Survivor空间，或者老年代空间。收集器能够对扮演不同角色的Region采用不同的策略去处理，这样无论是新创建的对象还是已经存活了一段时间、熬过多次收集的旧对象都能获取很好的收集效果。G1收集器去跟踪各个Region里面的垃圾堆积的“价值”大小，价值即回收所获得的空间大小以及回收所需时间的经验值，然后在后台维护一个优先级列表，每次根据用户设定允许的收集停顿时间（使用参数-XX：MaxGCPauseMillis指定，默认值是200毫秒），优先处理回收价值收益最大的那些Region。
 
 
 
