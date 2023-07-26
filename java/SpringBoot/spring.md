@@ -87,7 +87,7 @@ AutowiredAnnotationBeanPostProcessor
 
 自定义注解，完成Bean的注入，实现InstantiationAwareBeanPostProcessorAdapter，重写`postProcessPropertyValues`方法,自定义属性注入的方式。
 
-AbstractAutoProxyCreator
+AbstractAutoProxyCreator(AnnotationAwareAspectJAutoProxyCreator)
 
 作用：完成Spring AOP的功能,Spring AOP 是基于**代理**实现的，因此 this 即为 AOP 代理对象，target 即为被代理的原始对象
 
